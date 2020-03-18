@@ -1,5 +1,6 @@
 int gpu_index = 0;
 
+#define GPU 1
 #ifdef GPU
 
 #include "cuda.h"
@@ -9,6 +10,7 @@ int gpu_index = 0;
 #include <stdlib.h>
 #include <time.h>
 
+////
 void cuda_set_device(int n)
 {
     gpu_index = n;
@@ -23,7 +25,7 @@ int cuda_get_device()
     check_error(status);
     return n;
 }
-
+////
 void check_error(cudaError_t status)
 {
     //cudaDeviceSynchronize();
@@ -150,13 +152,14 @@ void cuda_free(float *x_gpu)
     check_error(status);
 }
 
+////
 void cuda_push_array(float *x_gpu, float *x, size_t n)
 {
     size_t size = sizeof(float)*n;
     cudaError_t status = cudaMemcpy(x_gpu, x, size, cudaMemcpyHostToDevice);
     check_error(status);
 }
-
+////
 void cuda_pull_array(float *x_gpu, float *x, size_t n)
 {
     size_t size = sizeof(float)*n;

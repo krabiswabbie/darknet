@@ -5,6 +5,8 @@
 #include <string.h>
 #include <pthread.h>
 
+#define GPU 1
+
 #ifdef GPU
     #define BLOCK 512
 
@@ -584,7 +586,14 @@ typedef struct{
 } box_label;
 
 
-network *load_network(char *cfg, char *weights, int clear);
+// Used to export network input buffer
+typedef struct {
+    int width, height, colors;
+    float *input;
+} netSize;
+
+network *load_network(char *cfg, char *weights, int clear, netSize *size);
+
 load_args get_base_args(network *net);
 
 void free_data(data d);
@@ -625,6 +634,7 @@ void softmax(float *input, int n, float temp, int stride, float *output);
 int best_3d_shift_r(image a, image b, int min, int max);
 #ifdef GPU
 void axpy_gpu(int N, float ALPHA, float * X, int INCX, float * Y, int INCY);
+////
 void fill_gpu(int N, float ALPHA, float * X, int INCX);
 void scal_gpu(int N, float ALPHA, float * X, int INCX);
 void copy_gpu(int N, float * X, int INCX, float * Y, int INCY);
@@ -661,7 +671,6 @@ float matrix_topk_accuracy(matrix truth, matrix guess, int k);
 void matrix_add_matrix(matrix from, matrix to);
 void scale_matrix(matrix m, float scale);
 matrix csv_to_matrix(char *filename);
-float *network_accuracies(network *net, data d, int n);
 float train_network_datum(network *net);
 image make_random_image(int w, int h, int c);
 
@@ -720,7 +729,6 @@ void top_predictions(network *net, int n, int *index);
 void flip_image(image a);
 image float_to_image(int w, int h, int c, float *data);
 void ghost_image(image source, image dest, int dx, int dy);
-float network_accuracy(network *net, data d);
 void random_distort_image(image im, float hue, float saturation, float exposure);
 void fill_image(image m, float s);
 image grayscale_image(image im);
@@ -734,10 +742,9 @@ box_label *read_boxes(char *filename, int *n);
 box float_to_box(float *f, int stride);
 void draw_detections(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes);
 
-matrix network_predict_data(network *net, data test);
 image **load_alphabet();
 image get_network_image(network *net);
-float *network_predict(network *net, float *input);
+float *network_predict(network *net);
 
 int network_width(network *net);
 int network_height(network *net);

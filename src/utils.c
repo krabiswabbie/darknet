@@ -249,7 +249,7 @@ void top_k(float *a, int n, int k, int *index)
         }
     }
 }
-
+////
 void error(const char *s)
 {
     perror(s);

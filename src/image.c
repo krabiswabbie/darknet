@@ -428,12 +428,26 @@ void censor_image(image im, int dx, int dy, int w, int h)
 void embed_image(image source, image dest, int dx, int dy)
 {
     int x,y,k;
+    // static int did = -1;
     for(k = 0; k < source.c; ++k){
+        // printf("c=%d\n", k);
         for(y = 0; y < source.h; ++y){
             for(x = 0; x < source.w; ++x){
                 float val = get_pixel(source, x,y,k);
+                
+                // DEBUG
+                // int source_id = k*source.h*source.w + y*source.w + x;
+                // int target_id = k*dest.h*dest.w + (dy+y)*dest.w + dx+x;
+                // if ( target_id != did + 1 ) {
+                //     printf("new id %d\n", target_id);
+                // }
+                // did = target_id;
+                // if ( x == 5 ) printf("...\n");
+                // if ( x < 5 || x >= source.w - 5 ) printf("(%d, %d, %d) [%d] >> (%d, %d, %d) [%d]\n", x, y, k, source_id, dx+x, dy+y, k, target_id);
+
                 set_pixel(dest, dx+x, dy+y, k, val);
             }
+            // printf("\n");
         }
     }
 }
@@ -821,11 +835,23 @@ image letterbox_image(image im, int w, int h)
         new_w = (im.w * h)/im.h;
     }
     image resized = resize_image(im, new_w, new_h);
+
     image boxed = make_image(w, h, im.c);
     fill_image(boxed, .5);
-    //int i;
-    //for(i = 0; i < boxed.w*boxed.h*boxed.c; ++i) boxed.data[i] = 0;
+    
+    // GUILTY!!
     embed_image(resized, boxed, (w-new_w)/2, (h-new_h)/2); 
+
+    // DEBUG
+    // printf("Resized: %dx%d, boxed: %dx%d\n", new_w, new_h, w, h);
+    // printf("Boxed data\n");
+    // for ( int c = 0, i = 0; i < im.c*w*h; i++, c++ ) {
+    //     printf("%.3f ", boxed.data[i]);
+    //     if ( c % 30 == 0 ) printf("\n");
+    // }
+    // printf("\n");
+
+
     free_image(resized);
     return boxed;
 }
@@ -1301,13 +1327,18 @@ image load_image_stb(char *filename, int channels)
     if(channels) c = channels;
     int i,j,k;
     image im = make_image(w, h, c);
+    // printf("Image plate: %dx%dx%d floats\n", w, h, c);
     for(k = 0; k < c; ++k){
+        // printf("c=%d\n", k);
         for(j = 0; j < h; ++j){
             for(i = 0; i < w; ++i){
                 int dst_index = i + w*j + w*h*k;
                 int src_index = k + c*i + c*w*j;
                 im.data[dst_index] = (float)data[src_index]/255.;
+                // if ( i == w - 5 ) printf("...\n");
+                // if ( i < 3 || i > w - 4 ) printf("w = %d, h = %d, c = %d, [%d] > [%d]\n", i, j, k, src_index, dst_index);
             }
+            // printf("\n");
         }
     }
     free(data);
@@ -1323,6 +1354,7 @@ image load_image(char *filename, int w, int h, int c)
 #endif
 
     if((h && w) && (h != out.h || w != out.w)){
+        // N/A
         image resized = resize_image(out, w, h);
         free_image(out);
         out = resized;

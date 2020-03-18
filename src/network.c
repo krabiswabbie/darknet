@@ -50,13 +50,19 @@ load_args get_base_args(network *net)
     return args;
 }
 
-network *load_network(char *cfg, char *weights, int clear)
+network *load_network(char *cfg, char *weights, int clear, netSize *size)
 {
     network *net = parse_network_cfg(cfg);
     if(weights && weights[0] != 0){
         load_weights(net, weights);
     }
     if(clear) (*net->seen) = 0;
+    
+    size->width = net->w;
+    size->height = net->h;
+    size->colors = net->c;
+    size->input = net->input_gpu;
+
     return net;
 }
 
@@ -493,15 +499,15 @@ void top_predictions(network *net, int k, int *index)
     top_k(net->output, net->outputs, k, index);
 }
 
-
-float *network_predict(network *net, float *input)
+float *network_predict(network *net)
 {
     network orig = *net;
-    net->input = input;
     net->truth = 0;
     net->train = 0;
     net->delta = 0;
-    forward_network(net);
+
+    forward_network_gpu(net);
+
     float *out = net->output;
     *net = orig;
     return out;
@@ -576,65 +582,65 @@ void free_detections(detection *dets, int n)
     free(dets);
 }
 
-float *network_predict_image(network *net, image im)
-{
-    image imr = letterbox_image(im, net->w, net->h);
-    set_batch_network(net, 1);
-    float *p = network_predict(net, imr.data);
-    free_image(imr);
-    return p;
-}
+// float *network_predict_image(network *net, image im)
+// {
+//     image imr = letterbox_image(im, net->w, net->h);
+//     set_batch_network(net, 1);
+//     float *p = network_predict(net, imr.data);
+//     free_image(imr);
+//     return p;
+// }
 
 int network_width(network *net){return net->w;}
 int network_height(network *net){return net->h;}
 
-matrix network_predict_data_multi(network *net, data test, int n)
-{
-    int i,j,b,m;
-    int k = net->outputs;
-    matrix pred = make_matrix(test.X.rows, k);
-    float *X = calloc(net->batch*test.X.rows, sizeof(float));
-    for(i = 0; i < test.X.rows; i += net->batch){
-        for(b = 0; b < net->batch; ++b){
-            if(i+b == test.X.rows) break;
-            memcpy(X+b*test.X.cols, test.X.vals[i+b], test.X.cols*sizeof(float));
-        }
-        for(m = 0; m < n; ++m){
-            float *out = network_predict(net, X);
-            for(b = 0; b < net->batch; ++b){
-                if(i+b == test.X.rows) break;
-                for(j = 0; j < k; ++j){
-                    pred.vals[i+b][j] += out[j+b*k]/n;
-                }
-            }
-        }
-    }
-    free(X);
-    return pred;   
-}
+// matrix network_predict_data_multi(network *net, data test, int n)
+// {
+//     int i,j,b,m;
+//     int k = net->outputs;
+//     matrix pred = make_matrix(test.X.rows, k);
+//     float *X = calloc(net->batch*test.X.rows, sizeof(float));
+//     for(i = 0; i < test.X.rows; i += net->batch){
+//         for(b = 0; b < net->batch; ++b){
+//             if(i+b == test.X.rows) break;
+//             memcpy(X+b*test.X.cols, test.X.vals[i+b], test.X.cols*sizeof(float));
+//         }
+//         for(m = 0; m < n; ++m){
+//             float *out = network_predict(net, X);
+//             for(b = 0; b < net->batch; ++b){
+//                 if(i+b == test.X.rows) break;
+//                 for(j = 0; j < k; ++j){
+//                     pred.vals[i+b][j] += out[j+b*k]/n;
+//                 }
+//             }
+//         }
+//     }
+//     free(X);
+//     return pred;   
+// }
 
-matrix network_predict_data(network *net, data test)
-{
-    int i,j,b;
-    int k = net->outputs;
-    matrix pred = make_matrix(test.X.rows, k);
-    float *X = calloc(net->batch*test.X.cols, sizeof(float));
-    for(i = 0; i < test.X.rows; i += net->batch){
-        for(b = 0; b < net->batch; ++b){
-            if(i+b == test.X.rows) break;
-            memcpy(X+b*test.X.cols, test.X.vals[i+b], test.X.cols*sizeof(float));
-        }
-        float *out = network_predict(net, X);
-        for(b = 0; b < net->batch; ++b){
-            if(i+b == test.X.rows) break;
-            for(j = 0; j < k; ++j){
-                pred.vals[i+b][j] = out[j+b*k];
-            }
-        }
-    }
-    free(X);
-    return pred;   
-}
+// matrix network_predict_data(network *net, data test)
+// {
+//     int i,j,b;
+//     int k = net->outputs;
+//     matrix pred = make_matrix(test.X.rows, k);
+//     float *X = calloc(net->batch*test.X.cols, sizeof(float));
+//     for(i = 0; i < test.X.rows; i += net->batch){
+//         for(b = 0; b < net->batch; ++b){
+//             if(i+b == test.X.rows) break;
+//             memcpy(X+b*test.X.cols, test.X.vals[i+b], test.X.cols*sizeof(float));
+//         }
+//         float *out = network_predict(net, X);
+//         for(b = 0; b < net->batch; ++b){
+//             if(i+b == test.X.rows) break;
+//             for(j = 0; j < k; ++j){
+//                 pred.vals[i+b][j] = out[j+b*k];
+//             }
+//         }
+//     }
+//     free(X);
+//     return pred;   
+// }
 
 void print_network(network *net)
 {
@@ -653,49 +659,6 @@ void print_network(network *net)
     }
 }
 
-void compare_networks(network *n1, network *n2, data test)
-{
-    matrix g1 = network_predict_data(n1, test);
-    matrix g2 = network_predict_data(n2, test);
-    int i;
-    int a,b,c,d;
-    a = b = c = d = 0;
-    for(i = 0; i < g1.rows; ++i){
-        int truth = max_index(test.y.vals[i], test.y.cols);
-        int p1 = max_index(g1.vals[i], g1.cols);
-        int p2 = max_index(g2.vals[i], g2.cols);
-        if(p1 == truth){
-            if(p2 == truth) ++d;
-            else ++c;
-        }else{
-            if(p2 == truth) ++b;
-            else ++a;
-        }
-    }
-    printf("%5d %5d\n%5d %5d\n", a, b, c, d);
-    float num = pow((abs(b - c) - 1.), 2.);
-    float den = b + c;
-    printf("%f\n", num/den); 
-}
-
-float network_accuracy(network *net, data d)
-{
-    matrix guess = network_predict_data(net, d);
-    float acc = matrix_topk_accuracy(d.y, guess,1);
-    free_matrix(guess);
-    return acc;
-}
-
-float *network_accuracies(network *net, data d, int n)
-{
-    static float acc[2];
-    matrix guess = network_predict_data(net, d);
-    acc[0] = matrix_topk_accuracy(d.y, guess, 1);
-    acc[1] = matrix_topk_accuracy(d.y, guess, n);
-    free_matrix(guess);
-    return acc;
-}
-
 layer get_network_output_layer(network *net)
 {
     int i;
@@ -703,14 +666,6 @@ layer get_network_output_layer(network *net)
         if(net->layers[i].type != COST) break;
     }
     return net->layers[i];
-}
-
-float network_accuracy_multi(network *net, data d, int n)
-{
-    matrix guess = network_predict_data_multi(net, d, n);
-    float acc = matrix_topk_accuracy(d.y, guess,1);
-    free_matrix(guess);
-    return acc;
 }
 
 void free_network(network *net)
@@ -759,11 +714,39 @@ float *network_output(network *net)
 
 #ifdef GPU
 
+// void forward_network_gpu(network *netp)
+// {
+//     network net = *netp;
+//     cuda_set_device(net.gpu_index);
+//     cuda_push_array(net.input_gpu, net.input, net.inputs*net.batch);
+//     if(net.truth){
+//         cuda_push_array(net.truth_gpu, net.truth, net.truths*net.batch);
+//     }
+
+//     int i;
+//     for(i = 0; i < net.n; ++i){
+//         net.index = i;
+//         layer l = net.layers[i];
+//         if(l.delta_gpu){
+//             fill_gpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
+//         }
+//         l.forward_gpu(l, net);
+//         net.input_gpu = l.output_gpu;
+//         net.input = l.output;
+//         if(l.truth) {
+//             net.truth_gpu = l.output_gpu;
+//             net.truth = l.output;
+//         }
+//     }
+//     pull_network_output(netp);
+//     calc_network_cost(netp);
+// }
+
 void forward_network_gpu(network *netp)
 {
     network net = *netp;
     cuda_set_device(net.gpu_index);
-    cuda_push_array(net.input_gpu, net.input, net.inputs*net.batch);
+    // cuda_push_array(net.input_gpu, net.input, net.inputs*net.batch);
     if(net.truth){
         cuda_push_array(net.truth_gpu, net.truth, net.truths*net.batch);
     }
