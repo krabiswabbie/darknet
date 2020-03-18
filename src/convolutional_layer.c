@@ -322,7 +322,7 @@ convolutional_layer make_convolutional_layer(int batch, int h, int w, int c, int
     l.workspace_size = get_workspace_size(l);
     l.activation = activation;
 
-    fprintf(stderr, "conv  %5d %2d x%2d /%2d  %4d x%4d x%4d   ->  %4d x%4d x%4d  %5.3f BFLOPs\n", n, size, size, stride, w, h, c, l.out_w, l.out_h, l.out_c, (2.0 * l.n * l.size*l.size*l.c/l.groups * l.out_h*l.out_w)/1000000000.);
+    // fprintf(stderr, "conv  %5d %2d x%2d /%2d  %4d x%4d x%4d   ->  %4d x%4d x%4d  %5.3f BFLOPs\n", n, size, size, stride, w, h, c, l.out_w, l.out_h, l.out_c, (2.0 * l.n * l.size*l.size*l.c/l.groups * l.out_h*l.out_w)/1000000000.);
 
     return l;
 }
@@ -341,31 +341,6 @@ void denormalize_convolutional_layer(convolutional_layer l)
         l.rolling_variance[i] = 1;
     }
 }
-
-/*
-void test_convolutional_layer()
-{
-    convolutional_layer l = make_convolutional_layer(1, 5, 5, 3, 2, 5, 2, 1, LEAKY, 1, 0, 0, 0);
-    l.batch_normalize = 1;
-    float data[] = {1,1,1,1,1,
-        1,1,1,1,1,
-        1,1,1,1,1,
-        1,1,1,1,1,
-        1,1,1,1,1,
-        2,2,2,2,2,
-        2,2,2,2,2,
-        2,2,2,2,2,
-        2,2,2,2,2,
-        2,2,2,2,2,
-        3,3,3,3,3,
-        3,3,3,3,3,
-        3,3,3,3,3,
-        3,3,3,3,3,
-        3,3,3,3,3};
-    //net.input = data;
-    //forward_convolutional_layer(l);
-}
-*/
 
 void resize_convolutional_layer(convolutional_layer *l, int w, int h)
 {
@@ -605,18 +580,4 @@ image *get_weights(convolutional_layer l)
     return weights;
 }
 
-image *visualize_convolutional_layer(convolutional_layer l, char *window, image *prev_weights)
-{
-    image *single_weights = get_weights(l);
-    show_images(single_weights, l.n, window);
-
-    image delta = get_convolutional_image(l);
-    image dc = collapse_image_layers(delta, 1);
-    char buff[256];
-    sprintf(buff, "%s: Output", window);
-    //show_image(dc, buff);
-    //save_image(dc, buff);
-    free_image(dc);
-    return single_weights;
-}
 

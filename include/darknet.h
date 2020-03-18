@@ -61,34 +61,18 @@ typedef enum{
 
 typedef enum {
     CONVOLUTIONAL,
-    DECONVOLUTIONAL,
-    CONNECTED,
-    MAXPOOL,
-    SOFTMAX,
-    DETECTION,
-    DROPOUT,
-    CROP,
+    // CONNECTED,
+    // DROPOUT,
+    // CROP,
     ROUTE,
-    COST,
-    NORMALIZATION,
-    AVGPOOL,
-    LOCAL,
     SHORTCUT,
-    ACTIVE,
-    RNN,
-    GRU,
-    LSTM,
-    CRNN,
+    // LSTM,
+    // CRNN,
     BATCHNORM,
     NETWORK,
-    XNOR,
-    REGION,
+    // XNOR,
     YOLO,
-    ISEG,
-    REORG,
     UPSAMPLE,
-    LOGXENT,
-    L2NORM,
     BLANK
 } LAYER_TYPE;
 
@@ -639,6 +623,7 @@ void fill_gpu(int N, float ALPHA, float * X, int INCX);
 void scal_gpu(int N, float ALPHA, float * X, int INCX);
 void copy_gpu(int N, float * X, int INCX, float * Y, int INCY);
 
+////
 void cuda_set_device(int n);
 void cuda_free(float *x_gpu);
 float *cuda_make_array(float *x, size_t n);
@@ -654,12 +639,8 @@ float train_networks(network **nets, int n, data d, int interval);
 void sync_nets(network **nets, int n, int interval);
 void harmless_update_network_gpu(network *net);
 #endif
-image get_label(image **characters, char *string, int size);
 void draw_label(image a, int r, int c, image label, const float *rgb);
-void save_image(image im, const char *name);
-void save_image_options(image im, const char *name, IMTYPE f, int quality);
 void get_next_batch(data d, int n, int offset, float *X, float *y);
-void grayscale_image_3c(image im);
 void normalize_image(image p);
 void matrix_to_csv(matrix m);
 float train_network_sgd(network *net, data d, int n);
@@ -700,38 +681,24 @@ int get_yolo_detections(layer l, int w, int h, int netw, int neth, float thresh,
 void free_network(network *net);
 void set_batch_network(network *net, int b);
 void set_temp_network(network *net, float t);
-image load_image(char *filename, int w, int h, int c);
-image load_image_color(char *filename, int w, int h);
 image make_image(int w, int h, int c);
-image resize_image(image im, int w, int h);
 void censor_image(image im, int dx, int dy, int w, int h);
-image letterbox_image(image im, int w, int h);
-image crop_image(image im, int dx, int dy, int w, int h);
-image center_crop_image(image im, int w, int h);
-image resize_min(image im, int min);
-image resize_max(image im, int max);
 image threshold_image(image im, float thresh);
 image mask_to_rgb(image mask);
 int resize_network(network *net, int w, int h);
 void free_matrix(matrix m);
-void test_resize(char *filename);
-int show_image(image p, const char *name, int ms);
 image copy_image(image p);
 void draw_box_width(image a, int x1, int y1, int x2, int y2, int w, float r, float g, float b);
 float get_current_rate(network *net);
-void composite_3d(char *f1, char *f2, char *out, int delta);
-data load_data_old(char **paths, int n, int m, char **labels, int k, int w, int h);
 size_t get_current_batch(network *net);
 void constrain_image(image im);
 image get_network_image_layer(network *net, int i);
 layer get_network_output_layer(network *net);
 void top_predictions(network *net, int n, int *index);
-void flip_image(image a);
 image float_to_image(int w, int h, int c, float *data);
 void ghost_image(image source, image dest, int dx, int dy);
 void random_distort_image(image im, float hue, float saturation, float exposure);
 void fill_image(image m, float s);
-image grayscale_image(image im);
 void rotate_image_cw(image im, int times);
 double what_time_is_it_now();
 image rotate_image(image m, float rad);
@@ -740,9 +707,7 @@ float box_iou(box a, box b);
 data load_all_cifar10();
 box_label *read_boxes(char *filename, int *n);
 box float_to_box(float *f, int stride);
-void draw_detections(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes);
 
-image **load_alphabet();
 image get_network_image(network *net);
 float *network_predict(network *net);
 
@@ -760,12 +725,6 @@ void do_nms_obj(detection *dets, int total, int classes, float thresh);
 void do_nms_sort(detection *dets, int total, int classes, float thresh);
 
 matrix make_matrix(int rows, int cols);
-
-#ifdef OPENCV
-void *open_video_stream(const char *f, int c, int w, int h, int fps);
-image get_image_from_stream(void *p);
-void make_window(char *name, int w, int h, int fullscreen);
-#endif
 
 void free_image(image m);
 float train_network(network *net, data d);
