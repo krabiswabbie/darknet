@@ -1,8 +1,8 @@
-![Darknet Logo](http://pjreddie.com/media/files/darknet-black-small.png)
+# Darknet Player
+Данная версия darknet предназначена только для использования с нейросетью YOLOv3 в составе декодера [nvdecGo](https://github.com/krabiswabbie/nvdecGo).
+В текущей версии вырезана значительная часть исходной функциональности:
+- Операции с файлами
+- Операции с изображениями
+- Операции над слоями CONNECTED, LSTM, CRNN, и другими.
 
-# Darknet #
-Darknet is an open source neural network framework written in C and CUDA. It is fast, easy to install, and supports CPU and GPU computation.
-
-For more information see the [Darknet project website](http://pjreddie.com/darknet).
-
-For questions or issues please use the [Google Group](https://groups.google.com/forum/#!forum/darknet).
+Также добавлена передача параметров нейросети в декодер.
