@@ -84,37 +84,7 @@ image get_convolutional_delta(convolutional_layer l)
 }
 
 static size_t get_workspace_size(layer l){
-#ifdef CUDNN
-    if(gpu_index >= 0){
-        size_t most = 0;
-        size_t s = 0;
-        cudnnGetConvolutionForwardWorkspaceSize(cudnn_handle(),
-                l.srcTensorDesc,
-                l.weightDesc,
-                l.convDesc,
-                l.dstTensorDesc,
-                l.fw_algo,
-                &s);
-        if (s > most) most = s;
-        cudnnGetConvolutionBackwardFilterWorkspaceSize(cudnn_handle(),
-                l.srcTensorDesc,
-                l.ddstTensorDesc,
-                l.convDesc,
-                l.dweightDesc,
-                l.bf_algo,
-                &s);
-        if (s > most) most = s;
-        cudnnGetConvolutionBackwardDataWorkspaceSize(cudnn_handle(),
-                l.weightDesc,
-                l.ddstTensorDesc,
-                l.convDesc,
-                l.dsrcTensorDesc,
-                l.bd_algo,
-                &s);
-        if (s > most) most = s;
-        return most;
-    }
-#endif
+
     return (size_t)l.out_h*l.out_w*l.size*l.size*l.c/l.groups*sizeof(float);
 }
 
@@ -263,7 +233,6 @@ convolutional_layer make_convolutional_layer(int batch, int h, int w, int c, int
     l.backward_gpu = backward_convolutional_layer_gpu;
     l.update_gpu = update_convolutional_layer_gpu;
 
-    if(gpu_index >= 0){
         if (adam) {
             l.m_gpu = cuda_make_array(l.m, l.nweights);
             l.v_gpu = cuda_make_array(l.v, l.nweights);
@@ -306,18 +275,6 @@ convolutional_layer make_convolutional_layer(int batch, int h, int w, int c, int
             l.x_gpu = cuda_make_array(l.output, l.batch*out_h*out_w*n);
             l.x_norm_gpu = cuda_make_array(l.output, l.batch*out_h*out_w*n);
         }
-#ifdef CUDNN
-        cudnnCreateTensorDescriptor(&l.normTensorDesc);
-        cudnnCreateTensorDescriptor(&l.srcTensorDesc);
-        cudnnCreateTensorDescriptor(&l.dstTensorDesc);
-        cudnnCreateFilterDescriptor(&l.weightDesc);
-        cudnnCreateTensorDescriptor(&l.dsrcTensorDesc);
-        cudnnCreateTensorDescriptor(&l.ddstTensorDesc);
-        cudnnCreateFilterDescriptor(&l.dweightDesc);
-        cudnnCreateConvolutionDescriptor(&l.convDesc);
-        cudnn_convolutional_setup(&l);
-#endif
-    }
 #endif
     l.workspace_size = get_workspace_size(l);
     l.activation = activation;

@@ -351,7 +351,6 @@ network *parse_network_cfg(char *filename)
     node *n = sections->front;
     if(!n) error("Config file has no sections");
     network *net = make_network(sections->size - 1);
-    net->gpu_index = gpu_index;
     size_params params;
 
     section *s = (section *)n->val;
@@ -432,16 +431,12 @@ network *parse_network_cfg(char *filename)
     if(workspace_size){
         //printf("%ld\n", workspace_size);
 #ifdef GPU
-        if(gpu_index >= 0){
-            net->workspace = cuda_make_array(0, (workspace_size-1)/sizeof(float)+1);
-        }else {
-            net->workspace = calloc(1, workspace_size);
-        }
+        net->workspace = cuda_make_array(0, (workspace_size-1)/sizeof(float)+1);
 #else
         net->workspace = calloc(1, workspace_size);
 #endif
     }
-    printf("Neural network input size %dx%d, loaded successfully\n", net->w, net->h);
+    // printf("Neural network input size %dx%d, loaded successfully\n", net->w, net->h);
     return net;
 }
 
@@ -483,9 +478,7 @@ list *read_cfg(char *filename)
 void save_convolutional_weights_binary(layer l, FILE *fp)
 {
 #ifdef GPU
-    if(gpu_index >= 0){
         pull_convolutional_layer(l);
-    }
 #endif
     binarize_weights(l.weights, l.n, l.c*l.size*l.size, l.binary_weights);
     int size = l.c*l.size*l.size;
@@ -518,11 +511,7 @@ void save_convolutional_weights(layer l, FILE *fp)
         //save_convolutional_weights_binary(l, fp);
         //return;
     }
-#ifdef GPU
-    if(gpu_index >= 0){
-        pull_convolutional_layer(l);
-    }
-#endif
+    pull_convolutional_layer(l);
     int num = l.nweights;
     fwrite(l.biases, sizeof(float), l.n, fp);
     if (l.batch_normalize){
@@ -536,9 +525,7 @@ void save_convolutional_weights(layer l, FILE *fp)
 void save_batchnorm_weights(layer l, FILE *fp)
 {
 #ifdef GPU
-    if(gpu_index >= 0){
         pull_batchnorm_layer(l);
-    }
 #endif
     fwrite(l.scales, sizeof(float), l.c, fp);
     fwrite(l.rolling_mean, sizeof(float), l.c, fp);
@@ -547,11 +534,6 @@ void save_batchnorm_weights(layer l, FILE *fp)
 
 void save_weights_upto(network *net, char *filename, int cutoff)
 {
-#ifdef GPU
-    if(net->gpu_index >= 0){
-        cuda_set_device(net->gpu_index);
-    }
-#endif
     fprintf(stderr, "Saving weights to %s\n", filename);
     FILE *fp = fopen(filename, "wb");
     if(!fp) file_error(filename);
@@ -599,11 +581,7 @@ void load_batchnorm_weights(layer l, FILE *fp)
     fread(l.scales, sizeof(float), l.c, fp);
     fread(l.rolling_mean, sizeof(float), l.c, fp);
     fread(l.rolling_variance, sizeof(float), l.c, fp);
-#ifdef GPU
-    if(gpu_index >= 0){
-        push_batchnorm_layer(l);
-    }
-#endif
+    push_batchnorm_layer(l);
 }
 
 void load_convolutional_weights_binary(layer l, FILE *fp)
@@ -629,11 +607,7 @@ void load_convolutional_weights_binary(layer l, FILE *fp)
             }
         }
     }
-#ifdef GPU
-    if(gpu_index >= 0){
-        push_convolutional_layer(l);
-    }
-#endif
+    push_convolutional_layer(l);
 }
 
 void load_convolutional_weights(layer l, FILE *fp)
@@ -682,21 +656,12 @@ void load_convolutional_weights(layer l, FILE *fp)
         transpose_matrix(l.weights, l.c*l.size*l.size, l.n);
     }
     //if (l.binary) binarize_weights(l.weights, l.n, l.c*l.size*l.size, l.weights);
-#ifdef GPU
-    if(gpu_index >= 0){
-        push_convolutional_layer(l);
-    }
-#endif
+    push_convolutional_layer(l);
 }
 
 
 void load_weights_upto(network *net, char *filename, int start, int cutoff)
 {
-#ifdef GPU
-    if(net->gpu_index >= 0){
-        cuda_set_device(net->gpu_index);
-    }
-#endif
     // fprintf(stderr, "Loading weights from %s...", filename);
     fflush(stdout);
     FILE *fp = fopen(filename, "rb");

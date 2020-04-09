@@ -24,7 +24,6 @@ extern "C" {
 #endif
 
 #define SECRET_NUM -1234
-extern int gpu_index;
 
 typedef struct{
     int classes;
@@ -460,7 +459,6 @@ typedef struct network{
     float hue;
     int random;
 
-    int gpu_index;
     tree *hierarchy;
 
     float *input;
